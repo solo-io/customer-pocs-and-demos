@@ -1,0 +1,21 @@
+apiVersion: gateway.solo.io/v1
+kind: VirtualService
+metadata:
+  name: httpbin-vs
+  namespace: apps-configuration
+spec:
+  sslConfig:
+    secretRef:
+      name: httpbin-tls
+      namespace: apps-configuration
+  virtualHost:
+    domains:
+    - 'apps.$DOMAIN_NAME'
+    routes:
+    - matchers:
+      - prefix: /
+      routeAction:
+        single:
+          upstream:
+            name: httpbin-upstream
+            namespace: apps-configuration

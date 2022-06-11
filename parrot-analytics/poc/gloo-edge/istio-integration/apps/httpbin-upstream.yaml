@@ -1,0 +1,22 @@
+apiVersion: gloo.solo.io/v1
+kind: Upstream
+metadata:
+  name: httpbin-upstream
+  namespace: apps-configuration
+  labels:
+    app: httpbin
+spec:
+  kube:
+    selector:
+      app: httpbin
+    serviceName: httpbin
+    serviceNamespace: apps
+    servicePort: 8000
+  sslConfig:
+    alpnProtocols:
+      - istio
+    sds:
+      certificatesSecretName: istio_server_cert
+      clusterName: gateway_proxy_sds
+      targetUri: 127.0.0.1:8234
+      validationContextName: istio_validation_context

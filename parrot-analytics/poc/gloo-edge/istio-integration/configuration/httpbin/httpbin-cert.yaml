@@ -1,0 +1,13 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: httpbin-cert
+  namespace: apps-configuration
+spec:
+  secretName: httpbin-tls
+  commonName: apps.$DOMAIN_NAME
+  dnsNames:
+    - apps.$DOMAIN_NAME
+  issuerRef:
+    name: global-cert-issuer
+    kind: ClusterIssuer
