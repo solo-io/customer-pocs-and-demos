@@ -1,0 +1,137 @@
+crds:
+  ## Only useful for Helm v2
+  create: false
+global:
+  glooRbac:
+    create: true
+  glooStats:
+    enabled: true
+  extensions:
+    rateLimit:
+      enabled: true
+    extAuth:
+      enabled: true
+      ## Deal with timeouts in the OIDC flow (Default: 200ms)
+      requestTimeout: 1s
+observability:
+  enabled: true
+prometheus:
+  enabled: true
+grafana:
+  defaultInstallationEnabled: true
+  rbac:
+    namespaced: true
+gloo-fed:
+  enabled: false
+gloo:
+  glooMtls:
+    enabled: true
+  # Disable SDS injection
+  istioSDS:
+    enabled: false
+  settings:
+    ## Bootstrap settings
+    create: create
+    ## Only watch for services and CRDS in following namespaces
+    watchNamespaces:
+    - apps
+    - apps-configuration
+    - apps-new
+    - gloo-system
+    writeNamespace: gloo-system
+    disableKubernetesDestinations: true
+  discovery:
+    enabled: false
+    ## Whitelist mode for FDS polling
+    fdsMode: WHITELIST
+  deployment:
+    disableUsageStatistics: true
+  gateway:
+    enabled: true
+    validation:
+      enabled: true
+      allowWarnings: true
+      alwaysAcceptResources: true
+      disableTransformationValidation: false
+  gatewayProxies:
+    gatewayProxy:
+      gatewaySettings:
+        ## Disable default gateways
+        disableGeneratedGateways: false
+
+        ## Custom access logging config
+        accessLoggingService:
+          accessLog:
+          - fileSink:
+              path: /dev/stdout
+              stringFormat: >
+                [%START_TIME%] "%REQ(:METHOD)% %REQ(X-ENVOY-ORIGINAL-PATH?:PATH)% %PROTOCOL%"
+                %RESPONSE_CODE% %RESPONSE_FLAGS% %BYTES_RECEIVED% %BYTES_SENT% %DURATION%
+                %RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)% "%REQ(X-FORWARDED-FOR)%" "%REQ(USER-AGENT)%"
+                "%REQ(X-REQUEST-ID)%" "%REQ(:AUTHORITY)%" "%UPSTREAM_HOST%"
+
+        ## Custom healthcheck endpoint used by LB
+        customHttpsGateway:
+          options:
+            healthCheck:
+              path: /health/ready
+
+      ## Inject the sidecar template
+      podTemplate:
+        extraGatewayProxyLabels:
+          istio.io/rev: $REVISION
+        extraAnnotations:
+          inject.istio.io/templates: glooTemplate
+
+      ## Works in minikube with a tunnel but also on managed K8
+      service:
+        type: LoadBalancer
+        ## This is required if using AWS ELB controller (Note that classic LB does not work with TLS passthrough)
+        extraAnnotations:
+          kubernetes.io/ingress.class: alb
+
+          ## Health checks
+          service.beta.kubernetes.io/aws-load-balancer-healthcheck-healthy-threshold: "2"
+          service.beta.kubernetes.io/aws-load-balancer-healthcheck-unhealthy-threshold: "2"
+          service.beta.kubernetes.io/aws-load-balancer-healthcheck-interval: "10"
+          service.beta.kubernetes.io/aws-load-balancer-healthcheck-path: "/health/ready"
+          service.beta.kubernetes.io/aws-load-balancer-healthcheck-protocol: "HTTPS"
+          service.beta.kubernetes.io/aws-load-balancer-healthcheck-port: "traffic-port"
+          service.beta.kubernetes.io/aws-load-balancer-healthcheck-timeout: "6"
+
+          ## Configure IP ACL
+          #service.beta.kubernetes.io/load-balancer-source-ranges: "<IP ACL list>"
+          #service.beta.kubernetes.io/aws-load-balancer-target-group-attributes: preserve_client_ip.enabled=true
+
+          ## Configure NLB
+          service.beta.kubernetes.io/aws-load-balancer-type: "external"
+          service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+          service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "instance"
+          external-dns.alpha.kubernetes.io/hostname: "apps.$DOMAIN_NAME"
+
+      ## Following is useful if you setup a Kind cluster
+      # service:
+      #   type: NodePort
+      #   httpsFirst: false
+      #   httpPort: 80
+      #   httpNodePort: 31080
+      #   httpsPort: 443
+      #   httpsNodePort: 31443
+      ## Disable if using either of the above
+      # service:
+      #   type: ClusterIP
+
+      ## Custom static cluster for SDS
+      envoyStaticClusters:
+        - name: gateway_proxy_sds
+          connect_timeout: 0.25s
+          http2_protocol_options: {}
+          load_assignment:
+            cluster_name: gateway_proxy_sds
+            endpoints:
+            - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: 127.0.0.1
+                      port_value: 8234

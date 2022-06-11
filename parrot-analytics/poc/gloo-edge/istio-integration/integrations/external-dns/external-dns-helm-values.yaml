@@ -1,0 +1,16 @@
+serviceAccount:
+  create: false
+  name: "external-dns"
+
+rbac:
+  create: true
+
+provider: aws
+policy: upsert-only
+domainFilters:
+- $DOMAIN_NAME
+registry: txt
+txtOwnerId: "$HOSTED_ZONE_ID"
+sources:
+  - service
+  - ingress
