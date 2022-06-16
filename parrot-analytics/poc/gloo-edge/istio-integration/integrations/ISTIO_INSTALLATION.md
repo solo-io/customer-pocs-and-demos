@@ -58,10 +58,7 @@ spec:
       "upstream_service_time": "%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%",
       "upstream_transport_failure_reason": "%UPSTREAM_TRANSPORT_FAILURE_REASON%",
       "user_agent": "%REQ(USER-AGENT)%",
-      "x_forwarded_for": "%REQ(X-FORWARDED-FOR)%",
-      "x_user_id": "%REQ(X-USER-ID)%", 
-      "x_tenant_id": "%REQ(X-TENANT-ID)%", 
-      "baggage": "%REQ(BAGGAGE)%"
+      "x_forwarded_for": "%REQ(X-FORWARDED-FOR)%"
     }'
 
     # Disable tracing
