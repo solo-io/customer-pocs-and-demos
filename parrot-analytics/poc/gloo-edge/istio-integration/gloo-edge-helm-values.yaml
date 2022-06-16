@@ -36,7 +36,6 @@ gloo:
     watchNamespaces:
     - apps
     - apps-configuration
-    - apps-new
     - gloo-system
     writeNamespace: gloo-system
     disableKubernetesDestinations: true
