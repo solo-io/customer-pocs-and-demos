@@ -1,0 +1,15 @@
+apiVersion: admin.gloo.solo.io/v2
+kind: RootTrustPolicy
+metadata:
+  name: root-trust-policy
+  namespace: gloo-mesh
+spec:
+  config:
+    mgmtServerCa:
+      # Self-signed root CA (auto-generated)
+      generated: {}
+      # Using Vault for intermediate CA
+      # secretRef:
+      #   name: root-trust-ca
+      #   namespace: gloo-mesh
+    autoRestartPods: true

@@ -1,0 +1,19 @@
+{
+    "CN": "Istio Root CA",
+    "key": {
+        "algo": "rsa",
+        "size": 2048
+    },
+    "ca": {
+        "expiry": "87600h"
+    },
+    "names": [
+        {
+            "C": "US",
+            "L": "Cambridge",
+            "O": "solo.io",
+            "OU": "Istio Root CA",
+            "ST": "Massachusetts"
+        }
+    ]
+}
