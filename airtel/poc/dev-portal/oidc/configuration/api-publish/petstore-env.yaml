@@ -1,0 +1,43 @@
+apiVersion: portal.gloo.solo.io/v1beta1
+kind: Environment
+metadata:
+  name: petstore-dev
+  namespace: apps-configuration
+spec:
+  domains:
+    - "api.$DOMAIN_NAME"
+  displayInfo:
+    description: This is a developer environment. Strictly not for production consumption
+    displayName: Development
+  # Define all the usage plans
+  parameters:
+    usagePlans:
+      basic:
+        displayName: Basic plan with API key auth
+        authPolicy:
+          apiKey: { }
+        rateLimit:
+          requestsPerUnit: 3
+          unit: MINUTE
+      petstoreDev:
+        displayName: Used for petstore development
+        authPolicy:
+          apiKey: { }
+        rateLimit:
+          requestsPerUnit: 3
+          unit: MINUTE
+  # Define products, versions and associated usage plans
+  apiProducts:
+    - namespaces:
+      - "*" 
+      labels:
+        - key: app
+          operator: Equals
+          values:
+            - petstore
+      versions:
+        tags:
+          - stable
+      usagePlans:
+        - basic
+        - petstoreDev

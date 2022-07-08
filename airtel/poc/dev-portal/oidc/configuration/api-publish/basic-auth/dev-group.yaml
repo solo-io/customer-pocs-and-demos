@@ -1,0 +1,31 @@
+apiVersion: portal.gloo.solo.io/v1beta1
+kind: Group
+metadata:
+  name: petstore-dev-team
+  namespace: apps-configuration
+spec:
+  displayName: Application developers
+  # Select all the users with the following matching label
+  userSelector:
+    matchLabels:
+      groups.portal.gloo.solo.io/gloo-portal.developers: "true"
+  # Define access level for the whole group
+  accessLevel:
+    apis:
+      - products:
+          namespaces:
+            - "*"
+          labels:
+            - key: app
+              operator: Equals
+              values:
+                - petstore
+        environments:
+          namespaces:
+            - "*"
+        usagePlans:
+          - basic
+    ## Also define which portals this group has access to
+    portals:
+      - name: petstore-portal
+        namespace: apps-configuration

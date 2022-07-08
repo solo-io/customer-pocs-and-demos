@@ -1,0 +1,31 @@
+apiVersion: portal.gloo.solo.io/v1beta1
+kind: Group
+metadata:
+  name: petstore-dev-team-oidc
+  namespace: apps-configuration
+spec:
+  displayName: Application developers w OIDC auth
+  # Define access level for the whole group
+  accessLevel:
+    apis:
+      - products:
+          namespaces:
+            - "*"
+          labels:
+            - key: app
+              operator: Equals
+              values:
+                - petstore
+        environments:
+          namespaces:
+            - "*"
+        usagePlans:
+          - basic
+          - petstoreDev
+    ## Also define which portals this group has access to
+    portals:
+      - name: petstore-portal
+        namespace: apps-configuration
+  oidcGroup:
+    groupNames:
+      - petstore-dev-team

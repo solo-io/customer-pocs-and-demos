@@ -1,0 +1,9 @@
+apiVersion: portal.gloo.solo.io/v1beta1
+kind: APIDoc
+metadata:
+  name: petstore-schema
+  namespace: apps-configuration
+spec:
+  openApi:
+    content:
+      fetchUrl: http://petstore.petstore:8080/swagger.json
