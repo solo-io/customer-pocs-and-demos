@@ -1,0 +1,37 @@
+apiVersion: portal.gloo.solo.io/v1beta1
+kind: Portal
+metadata:
+  name: petstore-portal
+  namespace: apps-configuration
+spec:
+  displayName: Petstore Portal
+  description: The Gloo Portal for the Petstore API
+  banner:
+    fetchUrl: https://i.imgur.com/EXbBN1a.jpg
+  favicon:
+    fetchUrl: https://i.imgur.com/QQwlQG3.png
+  primaryLogo:
+    fetchUrl: https://i.imgur.com/hjgPMNP.png
+  customStyling: {}
+  staticPages: []
+
+  portalUrlPrefix: "http://portal.${DOMAIN_NAME}"
+  oidcAuth:
+    clientId: ${CLIENT_ID}
+    clientSecret:
+      name: petstore-portaloidc-secret
+      namespace: apps-configuration
+      key: client_secret
+    groupClaimKey: groups
+    issuer: ${KEYCLOAK_URL}/realms/master
+
+  domains:
+    - "portal.$DOMAIN_NAME"
+
+  # This will include all API product of the environment in the portal
+  publishedEnvironments:
+    - name: petstore-dev
+      namespace: apps-configuration
+  
+  # This allows users to view APIs without needing to log in
+  allApisPublicViewable: true

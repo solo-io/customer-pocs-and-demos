@@ -1,0 +1,141 @@
+crds:
+  ## Only useful for Helm v2
+  create: false
+global:
+  glooRbac:
+    create: true
+  glooStats:
+    enabled: true
+  extensions:
+    rateLimit:
+      enabled: true
+    extAuth:
+      enabled: true
+      ## Deal with timeouts in the OIDC flow (Default: 200ms)
+      requestTimeout: 1s
+      deployment:
+        # Specify the monetization config and secret as volumes for the extauth deployment
+        extraVolume:
+          - name: monetization-config
+            configMap:
+              name: monetization-config
+          - name: monetization-secret
+            secret:
+              secretName: monetization-secret
+        # Mount the volumes
+        extraVolumeMount:
+          - name: monetization-config
+            mountPath: /etc/monetization/storage-config
+            readOnly: true
+          - name: monetization-secret
+            mountPath: /etc/monetization/secret
+            readOnly: true
+        # Set this env to enable monetization
+        customEnv:
+          - name: MONETIZATION_ENABLED
+            value: "true"
+observability:
+  enabled: true
+prometheus:
+  enabled: true
+grafana:
+  defaultInstallationEnabled: true
+  rbac:
+    namespaced: true
+gloo-fed:
+  enabled: false
+gloo:
+  glooMtls:
+    enabled: false
+  istioSDS:
+    enabled: false
+  settings:
+    ## Bootstrap settings
+    create: create
+    ## Only watch for services and CRDS in following namespaces
+    watchNamespaces:
+    - petclinic
+    - petstore
+    - apps
+    - apps-configuration
+    - gloo-system
+    - gloo-portal
+    writeNamespace: gloo-system
+    disableKubernetesDestinations: true
+  discovery:
+    enabled: true
+    ## Whitelist mode for FDS polling
+    fdsMode: BLACKLIST
+  deployment:
+    disableUsageStatistics: true
+  gateway:
+    enabled: true
+    validation:
+      enabled: true
+      allowWarnings: true
+      alwaysAcceptResources: true
+      disableTransformationValidation: false
+  gatewayProxies:
+    gatewayProxy:
+      gatewaySettings:
+        ## Disable default gateways
+        disableGeneratedGateways: false
+
+        ## Custom access logging config
+        accessLoggingService:
+          accessLog:
+          - fileSink:
+              path: /dev/stdout
+              stringFormat: >
+                [%START_TIME%] "%REQ(:METHOD)% %REQ(X-ENVOY-ORIGINAL-PATH?:PATH)% %PROTOCOL%"
+                %RESPONSE_CODE% %RESPONSE_FLAGS% %BYTES_RECEIVED% %BYTES_SENT% %DURATION%
+                %RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)% "%REQ(X-FORWARDED-FOR)%" "%REQ(USER-AGENT)%"
+                "%REQ(X-REQUEST-ID)%" "%REQ(:AUTHORITY)%" "%UPSTREAM_HOST%"
+          - grpcService:
+              logName: "monetization-log"
+              staticClusterName: "extauth"
+
+      # Access log clusters need to be static, so let's add "extauth" as a static cluster
+      envoyStaticClusters:
+      - name: extauth # we use the extauth server as an access log service to enable monetization
+        connect_timeout: 5.000s
+        type: STRICT_DNS
+        typed_extension_protocol_options:
+          envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+            "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+            # Explicitly require HTTP/2
+            explicit_http_config:
+              http2_protocol_options: { }
+        lb_policy: ROUND_ROBIN
+        load_assignment:
+          cluster_name: extauth
+          endpoints:
+          - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: extauth.gloo-system.svc.cluster.local
+                    port_value: 8083
+
+      ## Works in minikube with a tunnel but also on managed K8
+      service:
+        type: LoadBalancer
+        ## This is required if using AWS ELB controller (Note that classic LB does not work with TLS passthrough)
+        extraAnnotations:
+          kubernetes.io/ingress.class: alb
+          service.beta.kubernetes.io/aws-load-balancer-type: "external"
+          service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+          service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "instance"
+          external-dns.alpha.kubernetes.io/hostname: "api.$DOMAIN_NAME, portal.$DOMAIN_NAME"
+
+      ## Following is useful if you setup a Kind cluster
+      # service:
+      #   type: NodePort
+      #   httpsFirst: false
+      #   httpPort: 80
+      #   httpNodePort: 31080
+      #   httpsPort: 443
+      #   httpsNodePort: 31443
+      ## Disable if using either of the above
+      # service:
+      #   type: ClusterIP
